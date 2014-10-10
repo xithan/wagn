@@ -184,13 +184,13 @@ format do
 end
 
 format :email_html do
-  # def edit_info_for field, action
-  #   if field == :content and action.action_type == :update
-  #      wrap_list_item "content changes: #{render_content_changes :diff_type=>:summary, :action=>action}"
-  #   else
-  #     super
-  #   end
-  # end
+  def edit_info_for field, action
+    if field == :content and action.action_type == :update
+       wrap_list_item "content changes: #{render_content_changes :diff_type=>:summary, :action=>action}"
+    else
+      super
+    end
+  end
   
   def wrap_list list
     "<ul>#{list}</ul>\n"

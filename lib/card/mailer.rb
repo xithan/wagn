@@ -18,6 +18,17 @@ class Card
         %{
           <!DOCTYPE html>
           <html>
+            <head>
+            <style>
+            .diff-red {
+              text-decoration: line-through;
+              color: #ff5050;
+            }
+            .diff-green {
+                color: #41ad41;
+            }
+            </style>
+            </head>
             <body>
               #{message}
             </body>
