@@ -68,7 +68,7 @@ class Card::Query
     def to_s
       select = fields.reject(&:blank?) * ', '
       where = conditions.reject(&:blank?) * ' and '
-      ['(SELECT', select, 'FROM', tables, joins, 'WHERE', where, group, order, limit, offset, ')'].compact * ' '
+      ['(SELECT DISTINCT', select, 'FROM', tables, joins, 'WHERE', where, group, order, limit, offset, ')'].compact * ' '
     end
   end
 
