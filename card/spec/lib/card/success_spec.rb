@@ -131,11 +131,19 @@ describe Card::Success do
       success_params name: 'Home', view: 'View'
       @success.layout = 'Layout'
       @success.apply script: 'Script'
-      @success << {structure: 'Structure'}
+      @success << { structure: 'Structure' }
       expect(@success.params.keys.sort).to eq [:layout, :script, :structure, :view]
     end
     it 'ignores "id", "name", "mark", "card"", target", and "redirect"' do
-      success_params id: 5, name: 'Home', card: Card['Home'], mark: 'Home', target: 'Home', redirect: false, view: 'View'
+      success_params({
+        id: 5,
+        name: 'Home',
+        card: Card['Home'],
+        mark: 'Home',
+        target: 'Home',
+        redirect: false,
+        view: 'View'
+      })
       expect(@success.params.keys).to eq [:view]
     end
   end

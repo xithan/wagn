@@ -11,12 +11,17 @@ def assign_attributes args={}
     if newtype = args.delete('type')
       args['type_id'] = Card.fetch_id newtype
     end
-    @subcards = extract_subcard_args! args
+    subcard_args = extract_subcard_args! args
     reset_patterns
   end
   params = ActionController::Parameters.new(args)
   params.permit!
+
+  # import: first set name before process subcards
   super params
+  if args && subcard_args.present?
+    subcards.add subcard_args
+  end
 end
 
 def assign_set_specific_attributes
@@ -27,18 +32,15 @@ def assign_set_specific_attributes
   end
 end
 
-def extract_subcard_args! args={}
-  extracted_subcards = args.delete('subcards') || {}
+def extract_subcard_args! args
+  subcards = args.delete('subcards') || {}
   args.keys.each do |key|
     if key =~ /^\+/
-      val = args.delete key
-      val = { 'content' => val } if String === val
-      extracted_subcards[key] = val
+      subcards[key] = args.delete(key)
     end
   end
-  extracted_subcards
+  subcards
 end
-
 
 protected
 
@@ -113,18 +115,18 @@ end
 #  set_callback :store, :after, :process_read_rule_update_queue, prepend: true
 
 event :expire_related, after: :store do
-  self.expire
+  self.expire true
 
   if self.is_structure?
     self.structuree_names.each do |name|
-      Card.expire name
+      Card.expire name, true
     end
   end
   # FIXME really shouldn't be instantiating all the following bastards.  Just need the key.
   # fix in id_cache branch
-  self.dependents.each       { |c| c.expire }
-  # self.referencers.each      { |c| c.expire }
-  self.name_referencers.each { |c| c.expire }
+  self.dependents.each       { |c| c.expire(true) }
+  # self.referencers.each      { |c| c.expire(true) }
+  self.name_referencers.each { |c| c.expire(true) }
   # FIXME: this will need review when we do the new defaults/templating system
 end
 

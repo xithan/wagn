@@ -72,12 +72,11 @@ format :html do
   end
 
 end
-
 event :signin, before: :approve, on: :update do
-  email = subcards["+#{Card[:email   ].name}"]
-  email &&= email['content']
-  pword = subcards["+#{Card[:password].name}"]
-  pword &&= pword['content']
+  email = subfield :email
+  email &&= email.content
+  pword = subfield :password
+  pword &&= pword.content
 
   abort :failure, 'bad signin args' unless email && pword
 
@@ -99,8 +98,8 @@ event :signin_success, after: :signin do
 end
 
 event :send_reset_password_token, before: :signin, on: :update, when: proc{ |c| Env.params[:reset_password] } do
-  email = subcards["+#{Card[:email].name}"]
-  email &&= email['content']
+  email = subfield(:email)
+  email &&= email.content
 
   if accted = Auth[ email.strip.downcase ] and accted.account.active?
     accted.account.send_reset_password_token

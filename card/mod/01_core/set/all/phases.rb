@@ -25,7 +25,7 @@ rescue Card::Abort => e
     @supercard ? raise( e ) : true
   elsif e.status == :success
     if @supercard
-      @supercard.subcards.delete_if { |k,v| v==self }
+      @supercard.subcards.delete(key)
     end
     true
   end
@@ -91,7 +91,6 @@ end
 
 
 def extend
-
   run_callbacks :extend
   run_callbacks :subsequent
 rescue =>e
@@ -106,8 +105,7 @@ end
 def rescue_event e
   @action = nil
   expire_pieces
-  subcards.each do |key, card|
-    next unless Card===card
+  subcards.each do |card|
     card.expire_pieces
   end
   raise e
@@ -136,8 +134,13 @@ end
 
 def changed_condition_applies? db_column
   if db_column
-    db_column = 'db_content' if db_column.to_sym == :content
-    @action != :delete && changes[db_column.to_s]
+    db_column =
+      case db_column.to_sym
+      when :content then 'db_content'
+      when :type    then 'type_id'
+      else db_column.to_s
+      end
+    @action != :delete && changes[db_column]
   else
     true
   end
@@ -152,55 +155,51 @@ def when_condition_applies? block
 end
 
 
-def subcards
-  @subcards ||= {}
-end
 
-
-event :process_subcards, after: :approve, on: :save do
-  subcards.keys.each do |sub_name|
-    opts = @subcards[sub_name] || {}
-    opts = { 'content' => opts } if String===opts
-    ab_name = sub_name.to_name.to_absolute_name name
-    next if ab_name.key == key # don't resave self!
-
-    opts = opts.stringify_keys
-    opts['subcards'] = extract_subcard_args! opts
-
-    opts[:supercard] = self
-
-    subcard =
-      if known_card = Card[ab_name]
-        known_card.refresh.assign_attributes opts
-        known_card
-      elsif (opts['content'].present? && opts['content'].strip.present?) ||
-        opts['subcards'].present? || opts['file'].present? || opts['image'].present?
-        Card.new opts.reverse_merge 'name' => sub_name
-      end
-
-    if subcard
-      @subcards[sub_name] = subcard
-    else
-      @subcards.delete sub_name
+event :filter_empty_subcards, after: :approve, on: :save do
+  subcards.each_card do |subcard|
+    if subcard.new? && (subcard.content.empty? || subcard.content.strip.empty?) &&
+      !subcard.subcards.present? && !subcard.file.present? && !subcard.image.present?   # TODO: check if file and image checks are necessary. Depends on whether attachment cards write the identifier to db_content before or after this event
+      remove_subcard subcard
     end
   end
 end
 
+# left for compatibility reasons because other events refer to this
+event :process_subcards, after: :filter_empty_subcards, on: :save do
+end
+
+# event :approve_subcards, after: :process_subcards do
+#   subcards.process_if(:context=>self) do |sub_key, opts|
+#     sub_key != key &&
+#       (
+#         Card[sub_key] ||
+#         (opts[:content].present? && opts[:content].strip.present?) ||
+#         opts[:subcards].present? || opts[:file].present? || opts[:image].present?
+#       )
+#   end
+# end
+
 event :approve_subcards, after: :process_subcards do
-  subcards.each do |key, subcard|
+  subcards.each do |subcard|
     if !subcard.valid_subcard?
       subcard.errors.each do |field, err|
         err = "#{field} #{err}" unless [:content, :abort].member? field
-        errors.add subcard.relative_name, err
+        errors.add subcard.relative_name.s, err
       end
     end
   end
 end
 
 event :store_subcards, after: :store do
-  subcards.each do |key, sub|
-    sub.save! validate: false #unless @draft
+  subcards.each do |subcard|
+    subcard.save! validate: false if subcard != self#unless @draft
   end
+
+  # ensures that a supercard can access subcards of self
+  # eg. <user> creates <user+*account> creates <user+*account+*status>
+  # <user> changes <user+*account+*status> in event activate_account
+  Card.write_to_cache self
 end
 
 def success

@@ -18,12 +18,12 @@ end
 #FIXME - these should probably be in pattern-specific specs, though that may not leave much to test in the base class :)
 
 describe Card::RightSet do
-  it_generates name: "author+*right", from: Card.new( name: "Iliad+author" )
-  it_generates name: "author+*right", from: Card.new( name: "+author" )
+  it_generates name: 'author+*right', from: Card.new(name: 'Iliad+author')
+  it_generates name: 'author+*right', from: Card.new(name: '+author')
 end
 
 describe Card::TypeSet do
-  it_generates name: "Book+*type", from: Card.new( type: "Book" )
+  it_generates name: 'Book+*type', from: Card.new(type: "Book")
 end
 
 describe Card::TypeSet do
@@ -44,13 +44,14 @@ describe Card::TypeSet do
 end
 
 describe Card::AllPlusSet do
-  it_generates name: "*all plus", from: Card.new( name: "Book+author" )
+  it_generates name: '*all plus', from: Card.new(name: 'Book+author')
 end
 
 describe Card::AllSet do
-  it_generates name: "*all", from: Card.new( type: "Book" )
+  it_generates name: '*all', from: Card.new(type: 'Book')
 end
 
 describe Card::TypePlusRightSet do
-  it_generates name: "Book+author+*type plus right", from: Card.new( name: "Iliad+author" )
+  author_card = Card.new(name: 'Iliad+author')
+  it_generates name: 'Book+author+*type plus right', from: author_card
 end

@@ -38,17 +38,39 @@ class Card
       name ? name.s : ( raise Card::NotFound, "unknown codename: #{tag_code}" )
     end
 
+    def field tag_name
+      field_name( tag_name).s
+    end
+
     def code
       Card::Codename[ Card.fetch_id self ]
     end
 
+    def field_name tag_name
+      case tag_name
+      when Symbol
+        trait_name tag_name
+      else
+        [ self, tag_name ].to_name
+      end
+    end
+
+    def relative_field_name tag_name
+      field_name(tag_name).relative_name(self)
+    end
+
+    def relative_name context_name
+      self.to_show(*context_name.to_name.parts).to_name
+    end
+
+    def absolute_name context_name
+      self.to_absolute_name(context_name)
+    end
 
     def is_a_field_of? context_name
       if context_name.present?
         # Do I still equal myself after I've been relativised in the context of context_name?
-        relative_name = self.to_show(*context_name.to_name.parts).to_name
-        absolute_name = self.to_absolute_name(context_name)
-        relative_name.key != absolute_name.key
+        relative_name(context_name).key != absolute_name(context_name).key
       else
         self.s.match /^\s*\+/
       end

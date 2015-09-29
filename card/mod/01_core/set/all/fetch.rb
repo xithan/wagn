@@ -23,15 +23,7 @@ module ClassMethods
   #     new: {  card opts }      Return a new card when not found
   #
   def fetch mark, opts={}
-    if String === mark
-      case mark
-      when /^\~(\d+)$/ # get by id
-        mark = $1.to_i
-      when /^\:(\w+)$/ # get by codename
-        mark = $1.to_sym
-      end
-    end
-    mark = Card::Codename[mark] if Symbol === mark # id from codename
+    mark = normalize_mark mark
 
     if mark.present?
       card, mark, needs_caching = fetch_from_cache_or_db mark, opts # have existing
@@ -58,18 +50,45 @@ module ClassMethods
         return
       else
         card.include_set_modules unless opts[:skip_modules]  # need to load modules here to call the right virtual? method
-        return unless card.virtual?
+        return unless card.virtual? || opts[:subcard]
       end
-      card.name = mark.to_s if mark && mark.to_s != card.name
+      card.name = mark.to_s if mark && mark.to_s != card.name && !opts[:subcard]
     end
 
     card.include_set_modules unless opts[:skip_modules]
     card
   end
 
+  def normalize_mark mark
+    case mark
+    when String
+      case mark
+      when /^\~(\d+)$/ # get by id
+        $1.to_i
+      when /^\:(\w+)$/ # get by codename
+        Card::Codename[$1.to_sym]
+      else
+        mark
+      end
+    when Symbol
+      Card::Codename[mark] # id from codename
+    else
+      mark
+    end
+  end
+
   def fetch_id mark #should optimize this.  what if mark is int?  or codename?
     card = fetch mark, skip_virtual: true, skip_modules: true
     card and card.id
+  end
+
+  def assign_or_initialize_by name, attributes
+    if known_card = Card.fetch(name, :subcard=>true)
+      known_card.refresh.assign_attributes attributes
+      known_card
+    else
+      Card.new attributes.merge(:name => name)
+    end
   end
 
   def [](mark)
@@ -86,10 +105,15 @@ module ClassMethods
     card.present?
   end
 
-  def expire name
+  def expire name, subcards=false
     #note: calling instance method breaks on dirty names
     key = name.to_name.key
     if card = Card.cache.read( key )
+      if subcards
+        card.expire_subcards
+      else
+        card.preserve_subcards
+      end
       Card.cache.delete key
       Card.cache.delete "~#{card.id}" if card.id
     end
@@ -145,15 +169,14 @@ module ClassMethods
 
     card = send( "fetch_from_cache_by_#{mark_type}", val )
 
-    if opts[:look_in_trash]
-      if card.nil? || (card.new_card? && !card.trash)
-        card = Card.where( mark_type => val ).take
-        needs_caching = card && !card.trash
-      end
-    elsif card.nil?
-      needs_caching = true
-      card = Card.where( mark_type => val, trash: false).take
+    if card.nil? || ( opts[:look_in_trash] && card.new_card? && !card.trash )
+      query = { mark_type => val }
+      query[:trash] = false unless opts[:look_in_trash]
+      card = fetch_from_db query
+      needs_caching = card && !card.trash
+      card.restore_subcards if card
     end
+
 
     [ card, mark, needs_caching ]
   end
@@ -167,6 +190,10 @@ module ClassMethods
 
   def fetch_from_cache_by_key key
     fetch_from_cache key
+  end
+
+  def fetch_from_db query
+    Card.where(query).take
   end
 
   def new_for_cache name, opts
@@ -213,8 +240,13 @@ def expire_pieces
 end
 
 
-def expire
+def expire subcards=false
   #Rails.logger.warn "expiring i:#{id}, #{inspect}"
+  if subcards
+    expire_subcards
+  else
+    preserve_subcards
+  end
   Card.cache.delete key
   Card.cache.delete "~#{id}" if id
 end

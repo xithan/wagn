@@ -51,7 +51,7 @@ event :setup_first_user, before: :process_subcards, on: :create, when: proc{ |c|
   subcards['+*roles'] = { content: Card[:administrator].name }
 
   email, password = subcards.delete('+*account+*email'), subcards.delete('+*account+*password')
-  subcards['+*account'] = { '+*email'=>email, '+*password'=>password }
+  subcards.add_field :account, :subcards=> { "+#{Card[:email].name}"=>email, "+#{Card[:password].name}"=>password }
 end
 
 event :signin_after_setup, before: :extend, on: :create, when: proc{ |c| Card::Env.params[:setup] } do

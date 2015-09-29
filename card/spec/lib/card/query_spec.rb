@@ -34,16 +34,6 @@ describe Card::Query do
     end
   end
 
-  describe "symbolization" do
-    it "should handle array values" do
-      query = {'plus'=>['tags',{'refer_to'=>'cookies'}]}
-      expect(Card::Query.new(query).query).to eq({plus: ['tags',{refer_to: 'cookies'}]})
-    end
-  end
-
-
-
-
 
   describe "member_of/member" do
     it "member_of should find members" do
@@ -61,11 +51,11 @@ describe Card::Query do
     end
   end
 
-
   describe "multiple values" do
     it "should handle multiple values for relational keys" do
       expect(Card::Query.new( member_of: [:all, {name: 'r1'}, {key: 'r2'} ], return: :name).run.sort).to eq(%w{ u1 u2 })
       expect(Card::Query.new( member_of: [      {name: 'r1'}, {key: 'r2'} ], return: :name).run.sort).to eq(%w{ u1 u2 })
+      expect(Card::Query.new( member_of: {any: [{name: 'r1'}, {key: 'r2'} ]},return: :name).run.sort).to eq(%w{ u1 u2 u3 })
       expect(Card::Query.new( member_of: [:any, {name: 'r1'}, {key: 'r2'} ], return: :name).run.sort).to eq(%w{ u1 u2 u3 })
     end
 
@@ -215,7 +205,11 @@ describe Card::Query do
     end
 
     it "should find right connection cards" do
-      expect(Card::Query.new( right: "A" ).run.map(&:name).sort).to eq(["C+A", "D+A", "F+A"])
+      [ { right: "A"},                         # query by name
+        { right: { content: "Alpha [[Z]]" } }  # query by content
+      ].each do |statement|
+        expect(Card::Query.new( statement ).run.map(&:name).sort).to eq(["C+A", "D+A", "F+A"])
+      end
     end
 
     it "should return count" do
@@ -317,13 +311,6 @@ describe Card::Query do
 
   end
 
-  describe "params" do
-    it "should merge in params as normal WQL" do
-      expect(Card::Query.new( params: {name: "two"}).run.first.name).to eq('Two')
-    end
-  end
-
-
   describe "match" do
     it "should reach content and name via shortcut" do
       expect(Card::Query.new( match: "two").run.map(&:name).sort).to eq(CARDS_MATCHING_TWO)
@@ -343,7 +330,6 @@ describe Card::Query do
       expect(Card::Query.new(and: {match: 'two'}).run.map(&:name).sort).to eq(CARDS_MATCHING_TWO)
       expect(Card::Query.new(and: {}, type: "Cardtype E").run.first.name).to eq('type-e-card')
     end
-
 
     it "should work within 'or'" do
       results = Card::Query.new(or: {name: 'Z', and: {left: 'A', right: 'C'}}).run
@@ -381,7 +367,10 @@ describe Card::Query do
       expect(Card::Query.new(found_by: 'Image+*type+by name').run.map(&:name).sort).to eq(Card.search(type: 'Image').map(&:name).sort)
     end
     it "should play nicely with other properties and relationships" do
-      expect(Card::Query.new(plus: {found_by: 'Simple Search'}).run.map(&:name).sort).to eq(Card::Query.new(plus: {name: 'A'}).run.map(&:name).sort)
+      found_by_simple = Card::Query.new( plus: { found_by: 'Simple Search' }, return: :name, sort: :name ).run
+      plus_name_A =     Card::Query.new( plus: { name: 'A'                 }, return: :name, sort: :name ).run
+
+      expect(found_by_simple).to eq(plus_name_A)
       expect(Card::Query.new(found_by: 'A+*self', plus: 'C').run.map(&:name)).to eq(%w{ A })
 
     end
@@ -397,8 +386,8 @@ describe Card::Query do
 
   describe "relative" do
     it "should clean wql" do
-      wql = Card::Query.new( part: "_self",context: 'A' )
-      expect(wql.query[:part]).to eq('A')
+      query = Card::Query.new( part: "_self",context: 'A' )
+      expect(query.statement[:part]).to eq('A')
     end
 
     it "should find connection cards" do

@@ -96,7 +96,8 @@ def has_token?
 end
 
 event :activate_account do
-  subcards['+*account'] = {'+*status'=>'active'}
+  add_subfield :account
+  subfield(:account).add_subfield :status, :content =>'active'
   self.type_id = Card.default_accounted_type_id
   account.send_welcome_email
 end
@@ -131,11 +132,12 @@ event :redirect_to_edit_password, on: :update, after: :store, when: proc {|c| c.
 end
 
 event :preprocess_account_subcards, before: :process_subcards, on: :create do
-  #FIXME: use codenames!
-  email, password = subcards.delete('+*account+*email'), subcards.delete('+*account+*password')
-  subcards['+*account'] ||={}
-  subcards['+*account']['+*email']   = email if email
-  subcards['+*account']['+*password' ]=password if password
+  email = remove_subfield("+#{Card[:account].name}+#{Card[:email].name}")
+  password = remove_subfield("+#{Card[:account].name}+#{Card[:password].name}")
+  account = add_subfield :account
+  account.add_subfield( :email, :content => email) if email
+  account.add_subfield( :password, :content => password) if password
+
 end
 
 event :act_as_current_for_extend_phase, before: :extend, on: :create do
