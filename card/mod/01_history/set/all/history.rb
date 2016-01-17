@@ -211,8 +211,9 @@ format :html do
         <<-HAML
 .act{style: "clear:both;"}
   .head
-    .nr
-      = "##{rev_nr}"
+    - if rev_nr
+      .nr
+        = "##{rev_nr}"
     .title
       .actor
         = link_to act.actor.name, card_url(act.actor.cardname.url_key)
