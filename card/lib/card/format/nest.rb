@@ -54,32 +54,36 @@ class Card
         opts.delete_if { |_k, v| v.nil? }
         opts.reverse_merge! nest_defaults(nested_card)
 
-        sub = nil
+        sub = nest_subformat nested_card, opts
+        view = canonicalize_view opts.delete :view
+        opts[:home_view] = [:closed, :edit].member?(view) ? :open : view
+        view = nest_view nested_card, view
+
+        sub.optional_render view, opts
+      end
+
+      def nest_subformat nested_card, opts
         if opts[:inc_name] =~ /^_(self)?$/
-          sub = self
+          self
         else
           sub = subformat nested_card
           sub.nest_opts = opts[:items] ? opts[:items].clone : {}
+          sub
         end
+      end
 
-        view = canonicalize_view opts.delete :view
-        opts[:home_view] = [:closed, :edit].member?(view) ? :open : view
+      def nest_view nested_card, view
         # FIXME: special views should be represented in view definitions
-
-        view =
-          case @mode
-          when :edit then
-            view_in_edit_mode(view, nested_card)
-          when :template then
-            :template_rule
-          when :closed then
-            view_in_closed_mode(view, nested_card)
-          else
-            view
-          end
-
-        sub.optional_render view, opts
-        # end
+        case @mode
+        when :edit then
+          view_in_edit_mode(view, nested_card)
+        when :template then
+          :template_rule
+        when :closed then
+          view_in_closed_mode(view, nested_card)
+        else
+          view
+        end
       end
 
       def get_nest_content cardname
