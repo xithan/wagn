@@ -15,6 +15,7 @@ def assign_attributes args={}
   params.permit!
   super params
   return unless args && subcard_args.present?
+  binding.pry if subcard_args['+value'].present?
   # name= must come before process subcards
   subcards.add subcard_args
 end

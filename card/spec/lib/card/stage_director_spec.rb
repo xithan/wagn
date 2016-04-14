@@ -312,6 +312,34 @@ describe Card::StageDirector do
         expect(Card['main1+main2+sub2+sub3'].content).to eq('content')
       end
     end
+    def create_subcard_chain
+    Card.create! name: 'main', subcards: {
+      '+sub1' => 'some content',
+      '+sub2' => { subcards: { 'sub3' => { '+sub4' => 'more content' } } }
+    }
+
+    end
+    it "adds subsubcard to correct subdirector" do
+      Card::Auth.as_bot do
+        in_stage :prepare_to_validate,
+                 on: :create,
+                 trigger: :create_subcard_chain do
+          case  name
+          when 'main'
+            in_subdirectors = director.subdirectors.any? do |subdir|
+              subdir.card.name == 'sub3'
+            end
+            binding.pry
+            expect(in_subdirectors).to be_falsey
+          when 'main+sub2'
+            in_subsubdirectors = director.subdirectors.any? do |subdir|
+              subdir.card.name == 'sub3'
+            end
+            expect(in_subsubdirectors).to be_truthy
+          end
+        end
+      end
+    end
   end
 
   describe 'creating and updating cards in stages' do
