@@ -121,17 +121,7 @@ end
 def ok_to_create
   permit :create
   return if !@action_ok || !junction?
-
-  [:left, :right].each do |side|
-    # left is supercard; create permissions will get checked there.
-    next if side == :left && @superleft
-    part_card = send side, new: {}
-    # if no card, there must be other errors
-    next unless part_card && part_card.new_card?
-    unless part_card.ok? :create
-      deny_because you_cant("create #{part_card.name}")
-    end
-  end
+  ok_to_create_parts
 end
 
 def ok_to_read
@@ -158,6 +148,19 @@ def ok_to_comment
   return unless @action_ok
   deny_because "No comments allowed on templates" if is_template?
   deny_because "No comments allowed on structured content" if structure
+end
+
+def ok_to_create_parts
+  [:left, :right].each do |side|
+    # left is supercard; create permissions will get checked there.
+    next if side == :left && @superleft
+    part_card = send side, new: {}
+    # if no card, there must be other errors
+    next unless part_card && part_card.new_card?
+    unless part_card.ok? :create
+      deny_because you_cant("create #{part_card.name}")
+    end
+  end
 end
 
 event :clear_read_rule, :store, on: :delete do

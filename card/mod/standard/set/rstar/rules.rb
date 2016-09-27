@@ -46,6 +46,10 @@ def rule_user
   is_preference? ? self[-2] : nil
 end
 
+def rule_description
+  content
+end
+
 # ~~~~~~~~~~ determine the set options to which the user can apply the rule.
 def set_options
   first = if new_card?
