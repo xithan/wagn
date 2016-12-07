@@ -74,6 +74,7 @@ class Card
       register_list :nest_only, [:Nest]
       register_list :query, [:QueryReference]
       register_list :stub, [:ViewStub]
+      register_list :uri, [:URI, :HostURI, :EmailURI, :EscapedLiteral]
 
       class Abstract
         class_attribute :config
