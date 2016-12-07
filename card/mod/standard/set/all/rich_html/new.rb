@@ -2,14 +2,20 @@ format :html do
   view :new, perms: :create, tags: :unknown_ok, cache: :never do
     voo.title ||= new_view_title if new_name_prompt?
     voo.show :help
-    frame_and_form :create, "main-success" => "REDIRECT" do
-      [
-        new_view_hidden,
-        new_view_name,
-        new_view_type,
-        _optional_render_content_formgroup,
-        _optional_render_new_buttons
-      ]
+    frame do
+      _render_new_form
+    end
+  end
+
+  view :new_form, perms: :create, tags: :unknown_ok, cache: :never do
+    card_form :create, "main-success" => "REDIRECT" do
+      output [
+               new_view_hidden,
+               new_view_name,
+               new_view_type,
+               _optional_render_content_formgroup,
+               _optional_render_new_buttons
+             ]
     end
   end
 
