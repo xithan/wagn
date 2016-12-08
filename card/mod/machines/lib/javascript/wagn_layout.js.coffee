@@ -19,12 +19,12 @@ sidebarToggle = (side) ->
     "visible-xs' data-toggle='offcanvas-#{side}'>" +
     "<span class='glyphicon glyphicon-chevron-#{icon_dir}'/></button>"
 
-singleSidebar = (side) ->
+singleSidebar = (side, width=3) ->
   $article = $('body > article').first()
   $aside   = $('body > aside').first()
-  $article.addClass("col-xs-12 col-sm-9 col-md-9")
+  $article.addClass("col-xs-12 col-sm-#{12 - width} col-md-#{12 - width}")
   $aside.addClass(
-    "col-xs-6 col-sm-3 col-md-3 sidebar-offcanvas sidebar-offcanvas-#{side}"
+    "col-xs-6 col-sm-#{width} col-md-#{width} sidebar-offcanvas sidebar-offcanvas-#{side}"
   )
   if side == 'left'
     $('body').append($aside).append($article)
@@ -47,11 +47,12 @@ doubleSidebar = ->
   $article.prepend(toggles)
 
 $(window).ready ->
+  width = if $('body').hasClass('thin-sidebar') then 2 else 3
   switch
     when $('body').hasClass('right-sidebar')
-      singleSidebar('right')
+      singleSidebar('right', width)
     when $('body').hasClass('left-sidebar')
-      singleSidebar('left')
+      singleSidebar('left', width)
     when $('body').hasClass('two-sidebar')
       doubleSidebar()
 
