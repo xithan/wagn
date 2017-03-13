@@ -146,13 +146,11 @@ format :html do
     Card.fetch(set_name)
   end
 
+  # subheader = with_name_context(card.name) do
+  #   subformat(rcard)._render_title(args)
+  # end
 
-    # subheader = with_name_context(card.name) do
-    #   subformat(rcard)._render_title(args)
-    # end
-
-
-  view :related do |args|
+  view :related, cache: :never do |args|
     related_card, options = related_card_and_options args
     return unless related_card
     voo.show :toolbar, :menu, :help

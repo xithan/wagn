@@ -17,6 +17,19 @@ def assign_set_specific_attributes
   end
 end
 
+def extract_subcard_args! args
+  subcards = args.delete("subcards") ||  args.delete(:subcards) || {}
+  if (subfields = args.delete("subfields") || args.delete(:subfields))
+    subfields.each_pair do |key, value|
+      subcards[cardname.field(key)] = value
+    end
+  end
+  args.keys.each do |key|
+    subcards[key] = args.delete(key) if key =~ /^\+/
+  end
+  subcards
+end
+
 protected
 
 def prepare_assignment_params args
@@ -67,26 +80,13 @@ def normalize_type_attributes args
   args["type_id"] = new_type_id if new_type_id
 end
 
-def extract_subcard_args! args
-  subcards = args.delete("subcards") || {}
-  if (subfields = args.delete("subfields"))
-    subfields.each_pair do |key, value|
-      subcards[cardname.field(key)] = value
-    end
-  end
-  args.keys.each do |key|
-    subcards[key] = args.delete(key) if key =~ /^\+/
-  end
-  subcards
-end
-
 def extract_type_id! args={}
   type_id =
     case
     when args["type_id"]
       id = args.delete("type_id").to_i
       # type_id can come in as 0,'' or nil
-      id == 0 ? nil : id
+      id.zero? ? nil : id
     when args["type_code"]
       Card.fetch_id args.delete("type_code").to_sym
     when args["type"]

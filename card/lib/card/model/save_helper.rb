@@ -9,6 +9,14 @@ class Card
     # All !-methods in this module rename existing cards
     # to resolve name conflicts)
     module SaveHelper
+      def as_user user_name
+        current = Card::Auth.current_id
+        Card::Auth.current_id = Card.fetch_id user_name
+        result = yield
+        Card::Auth.current_id = current
+        result
+      end
+
       def create_card name_or_args, content_or_args=nil
         args = standardize_args name_or_args, content_or_args
         resolve_name_conflict args
@@ -96,7 +104,7 @@ class Card
         if name_or_args.is_a?(Hash)
           name_or_args
         else
-          add_name name_or_args, content_or_args
+          add_name name_or_args, content_or_args || {}
         end
       end
 
@@ -128,9 +136,20 @@ class Card
       end
 
       def ensure_attributes card, args
-        update_args = args.select { |key, value| card.send(key) != value }
-        return if update_args.empty?
-        card.update_attributes! update_args
+        args = args.with_indifferent_access
+        subcards = card.extract_subcard_args! args
+        update_args =
+          args.select do |key, value|
+            if key =~ /^\+/
+              subfields[key] = value
+              false
+            else
+              card.send(key) != value
+            end
+          end
+        return if update_args.empty? && subcards.empty?
+        # FIXME: use ensure_attributes for subcards
+        card.update_attributes! update_args.merge(subcards: subcards)
       end
 
       def add_style name, opts={}

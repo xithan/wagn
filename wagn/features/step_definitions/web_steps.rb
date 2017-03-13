@@ -51,9 +51,8 @@ When /^(?:|I )select "([^"]*)" from "([^"]*)"$/ do |value, field|
   select(value, from: field)
 end
 
-When /^(?:|I )single-select "([^"]*)" from "([^"]*)"$/ do |value, field|
-  find("label", text: field).parent.find("a.chosen-single").click
-  find("li", text: value).click
+When /^(?:|I )submit form$/ do
+  find(:css, "button[type='submit']").click
 end
 
 # Use this step in conjunction with Rail's datetime_select helper. For example:

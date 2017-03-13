@@ -108,14 +108,14 @@ format :json do
   end
 end
 
-# while a card's card type and content are updated in the same request,
-# the new module will override the old module's events and functions.
-# this event is only on pointer card. Other type cards do not have this event,
-# so it is not overridden and will be run while updating type and content in
-# the same request.
+# If a card's type and content are updated in the same action, the new module
+# will override the old module's events and functions. But this event is only
+# on pointers -- other type cards do not have this event,
+# Therefore if something is changed from a pointer and its content is changed
+# in the same action, this event will be run and will treat the content like
+# it' still pointer content.  The "when" clause helps with that (but is a hack)
 event :standardize_items, :prepare_to_validate,
-      on: :save,
-      changed: :content,
+      on: :save, changed: :content,
       when: proc { |c| c.type_id == Card::PointerID } do
   self.content = item_names(context: :raw).map do |name|
     "[[#{name}]]"
@@ -128,7 +128,7 @@ end
 
 def item_cards args={}
   if args[:complete]
-    query = args.reverse_merge referred_to_by: name
+    query = args.reverse_merge referred_to_by: name, limit: 0
     Card::Query.run query
   elsif args[:known_only]
     known_item_cards args
@@ -152,7 +152,7 @@ def fetch_or_initialize_item_cards args
 end
 
 def item_names args={}
-  context = args[:context] || cardname
+  context = args[:context] || context_card.cardname
   content = args[:content] || raw_content
   content.to_s.split(/\n+/).map do |line|
     item_name = line.gsub(/\[\[|\]\]/, "").strip

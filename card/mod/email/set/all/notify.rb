@@ -170,31 +170,41 @@ format do
 #{render_list_of_changes(args)})
   end
 
-  view :followed, perms: :none, closed: true do |args|
-    if args[:followed_set] &&
-       (set_card = Card.fetch(args[:followed_set])) &&
-       args[:follow_option] &&
-       (option_card = Card.fetch(args[:follow_option]))
+  def followed_set_card
+    (set_name = voo.closest_live_option(:followed_set)) && Card.fetch(set_name)
+  end
+
+  def follow_option_card
+    (option_name = voo.closest_live_option(:follow_option)) &&
+      Card.fetch(option_name)
+  end
+
+  view :followed, perms: :none, closed: true do
+    if (set_card = followed_set_card) &&
+       (option_card = follow_option_card)
       option_card.description set_card
     else
-      "followed card"
+      "*followed set of cards*"
     end
   end
 
-  view :follower, perms: :none, closed: true do |args|
-    args[:follower] || "follower"
+  view :follower, perms: :none, closed: true do
+    voo.closest_live_option(:follower) || "follower"
   end
 
-  view :unfollow_url, perms: :none, closed: true do |args|
-    if args[:followed_set] && (set_card = Card.fetch(args[:followed_set])) &&
-       args[:follow_option] && args[:follower]
-      rule_name = set_card.follow_rule_name args[:follower]
-      target_name = "#{args[:follower]}+#{Card[:follow].name}"
-      update_path = page_path target_name,
-                              action: :update,
-                              card: { subcards: {
-                                rule_name => Card[:never].name
-                              } }
+  def live_follow_rule_name
+    return unless (set_card = followed_set_card) &&
+                  voo.closest_live_option(:follower)
+    set_card.follow_rule_name voo.closest_live_option(:follower)
+  end
+
+  view :unfollow_url, perms: :none, closed: true do |_args|
+    if (rule_name = live_follow_rule_name)
+      target_name = "#{voo.closest_live_option :follower}+#{Card[:follow].name}"
+      update_path = page_path target_name, action: :update,
+                                           card: { subcards: {
+                                             rule_name => Card[:never].name
+                                           } }
       card_url update_path # absolutize path
     end
   end
@@ -248,17 +258,22 @@ format do
   end
 end
 
-format :email_text do
-  view :last_action, perms: :none do |args|
+format do
+  view :last_action_verb do |args|
     act = get_act(args)
     "#{act.main_action.action_type}d"
   end
 end
 
+format :email_text do
+  view :last_action, perms: :none do |args|
+    _render_last_action_verb args
+  end
+end
+
 format :email_html do
   view :last_action, perms: :none do |args|
-    act = get_act(args)
-    "#{act.main_action.action_type}d"
+    _render_last_action_verb args
   end
 
   def wrap_list list

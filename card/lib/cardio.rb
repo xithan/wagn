@@ -47,9 +47,10 @@ module Cardio
         acts_per_page:          10,
         space_last_in_multispace: true,
         closed_search_limit:    10,
+        paging_limit: 20,
 
         non_createable_types:   [%w(signup setting set)],
-        view_cache:             (Rails.env == "production"),
+        view_cache: false,
 
         encoding:               "utf-8",
         request_logger:         false,
@@ -58,7 +59,7 @@ module Cardio
 
         file_storage:           :local,
         file_buckets:           {},
-        file_default_bucket:    nil
+        file_default_bucket: nil
       }
     end
 

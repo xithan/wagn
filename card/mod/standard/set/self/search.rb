@@ -1,6 +1,27 @@
+include_set Abstract::SearchParams
+
+format do
+  def extra_paging_path_args
+    vars = query_with_params.vars
+    return {} unless vars.is_a? Hash
+    vars.each_with_object({}) do |(key, value), hash|
+      hash["_#{key}"] = value
+    end
+  end
+
+  def default_search_params
+    hash = super
+    hash[:vars] = params[:vars] || {}
+    params.each do |key, val|
+      next unless key.to_s =~ /^\_(\w+)$/
+      hash[:vars][Regexp.last_match(1).to_sym] = val
+    end
+    hash
+  end
+end
 
 format :html do
-  view :title do
+  view :title, cache: :never do
     vars = root.search_params[:vars]
     if vars && vars[:keyword]
       voo.title = %(Search results for: <span class="search-keyword">)\
