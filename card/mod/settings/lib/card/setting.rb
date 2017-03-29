@@ -23,6 +23,7 @@ class Card
       pointer:     "Pointer",
       editing_cue: "Editing cues",
       event:       "Events",
+      latex:       "Latex",
       other:       "Other",
       config:      "Config"
     }

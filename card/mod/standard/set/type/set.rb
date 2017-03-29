@@ -3,7 +3,7 @@ include_set Type::SearchType
 
 format :html do
   COMMON_RULE_SETTINGS =
-    [:create, :read, :update, :delete, :structure, :default, :style].freeze
+    [:create, :read, :update, :delete, :structure, :default, :style, :preamble].freeze
 
   view :core, cache: :never do |args|
     voo.show :set_label, :rule_navbar
